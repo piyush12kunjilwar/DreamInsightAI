@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertDreamSchema, insertSleepQualitySchema } from "@shared/schema";
+import { insertDreamSchema, insertSleepQualitySchema, type Dream, type SleepQuality } from "@shared/schema";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -43,15 +43,15 @@ export default function HomePage() {
     },
   });
 
-  const { data: dreams } = useQuery({
+  const { data: dreams = [] } = useQuery<Dream[]>({
     queryKey: ["/api/dreams"],
   });
 
-  const { data: sleepQualities } = useQuery({
+  const { data: sleepQualities = [] } = useQuery<SleepQuality[]>({
     queryKey: ["/api/sleep"],
   });
 
-  const { data: sleepAnalysis } = useQuery({
+  const { data: sleepAnalysis } = useQuery<{ analysis: string }>({
     queryKey: ["/api/sleep/analysis"],
   });
 
@@ -167,7 +167,7 @@ export default function HomePage() {
                   <CardTitle>Dream Journal</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {dreams?.map((dream) => (
+                  {dreams.map((dream) => (
                     <div
                       key={dream.id}
                       className="border rounded-lg p-4 space-y-2"
@@ -279,7 +279,7 @@ export default function HomePage() {
                   <CardContent className="h-[300px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart
-                        data={sleepQualities?.map((sq) => ({
+                        data={sleepQualities.map((sq) => ({
                           date: new Date(sq.date).toLocaleDateString(),
                           hours: sq.hoursSlept,
                           quality: sq.quality,

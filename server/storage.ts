@@ -1,4 +1,3 @@
-import { IStorage } from "./storage";
 import createMemoryStore from "memorystore";
 import session from "express-session";
 import type {
@@ -16,13 +15,13 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  
-  createDream(dream: InsertDream & { userId: number }): Promise<Dream>;
+
+  createDream(dream: InsertDream & { userId: number; sentiment?: number | null; interpretation?: string | null }): Promise<Dream>;
   getDreamsByUserId(userId: number): Promise<Dream[]>;
-  
+
   createSleepQuality(quality: InsertSleepQuality & { userId: number }): Promise<SleepQuality>;
   getSleepQualitiesByUserId(userId: number): Promise<SleepQuality[]>;
-  
+
   sessionStore: session.Store;
 }
 
@@ -60,14 +59,18 @@ export class MemStorage implements IStorage {
     return user;
   }
 
-  async createDream(dream: InsertDream & { userId: number }): Promise<Dream> {
+  async createDream(dream: InsertDream & { 
+    userId: number; 
+    sentiment?: number | null; 
+    interpretation?: string | null 
+  }): Promise<Dream> {
     const id = this.currentId++;
     const newDream = {
       ...dream,
       id,
       date: new Date(),
-      sentiment: null,
-      interpretation: null,
+      sentiment: dream.sentiment ?? null,
+      interpretation: dream.interpretation ?? null,
     };
     this.dreams.set(id, newDream);
     return newDream;
@@ -87,6 +90,7 @@ export class MemStorage implements IStorage {
       ...quality,
       id,
       date: new Date(),
+      notes: quality.notes ?? null,
     };
     this.sleepQualities.set(id, newQuality);
     return newQuality;

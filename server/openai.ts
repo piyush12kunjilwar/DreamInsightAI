@@ -28,13 +28,21 @@ export async function analyzeDream(dream: string): Promise<{
       response_format: { type: "json_object" },
     });
 
+    if (!response.choices[0].message.content) {
+      throw new Error("No response content received from OpenAI");
+    }
+
     const result = JSON.parse(response.choices[0].message.content);
     return {
       interpretation: result.interpretation,
       sentiment: Math.max(1, Math.min(5, Math.round(result.sentiment))),
     };
   } catch (error) {
-    throw new Error("Failed to analyze dream: " + error.message);
+    console.error("Dream analysis error:", error);
+    if (error instanceof Error) {
+      throw new Error("Failed to analyze dream: " + error.message);
+    }
+    throw new Error("Failed to analyze dream: An unexpected error occurred");
   }
 }
 
@@ -42,6 +50,10 @@ export async function analyzeSleepPattern(
   sleepData: Array<{ date: Date; hoursSlept: number; quality: number }>,
 ): Promise<string> {
   try {
+    if (sleepData.length === 0) {
+      return "Not enough sleep data to analyze yet. Continue logging your sleep patterns for personalized insights.";
+    }
+
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
@@ -57,8 +69,16 @@ export async function analyzeSleepPattern(
       ],
     });
 
-    return response.choices[0].message.content || "No analysis available";
+    if (!response.choices[0].message.content) {
+      throw new Error("No response content received from OpenAI");
+    }
+
+    return response.choices[0].message.content;
   } catch (error) {
-    throw new Error("Failed to analyze sleep pattern: " + error.message);
+    console.error("Sleep pattern analysis error:", error);
+    if (error instanceof Error) {
+      throw new Error("Failed to analyze sleep pattern: " + error.message);
+    }
+    throw new Error("Failed to analyze sleep pattern: An unexpected error occurred");
   }
 }
