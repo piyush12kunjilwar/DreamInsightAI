@@ -17,16 +17,17 @@ import { insertUserSchema } from "@shared/schema";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Moon } from "lucide-react";
 import { useLocation } from "wouter";
+import { useEffect } from "react";
 
 export default function AuthPage() {
   const { loginMutation, registerMutation, user } = useAuth();
   const [, setLocation] = useLocation();
 
-  // Redirect if already logged in
-  if (user) {
-    setLocation("/");
-    return null;
-  }
+  useEffect(() => {
+    if (user) {
+      setLocation("/");
+    }
+  }, [user, setLocation]);
 
   const loginForm = useForm({
     resolver: zodResolver(insertUserSchema),

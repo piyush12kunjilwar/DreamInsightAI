@@ -14,14 +14,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const parsed = insertDreamSchema.safeParse(req.body);
     if (!parsed.success) return res.status(400).json(parsed.error);
 
-    const analysis = await analyzeDream(parsed.data.content);
-    const dream = await storage.createDream({
-      userId: req.user!.id,
-      content: parsed.data.content,
-      ...analysis,
-    });
+    try {
+      const analysis = await analyzeDream(parsed.data.content);
+      const dream = await storage.createDream({
+        userId: req.user!.id,
+        content: parsed.data.content,
+        ...analysis,
+      });
 
-    res.status(201).json(dream);
+      res.status(201).json(dream);
+    } catch (error) {
+      console.error("Error in /api/dreams:", error);
+      if (error instanceof Error && error.message.includes("429")) {
+        return res.status(503).json({ 
+          message: "AI analysis is temporarily unavailable. Your dream has been saved but will be analyzed later." 
+        });
+      }
+      return res.status(500).json({ 
+        message: "An error occurred while analyzing your dream. Please try again later." 
+      });
+    }
   });
 
   app.get("/api/dreams", async (req, res) => {
@@ -52,17 +64,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/sleep/analysis", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    
-    const sleepQualities = await storage.getSleepQualitiesByUserId(req.user!.id);
-    const analysis = await analyzeSleepPattern(
-      sleepQualities.map((sq) => ({
-        date: sq.date,
-        hoursSlept: sq.hoursSlept,
-        quality: sq.quality,
-      })),
-    );
 
-    res.json({ analysis });
+    try {
+      const sleepQualities = await storage.getSleepQualitiesByUserId(req.user!.id);
+      if (sleepQualities.length === 0) {
+        return res.json({ 
+          analysis: "Not enough sleep data to analyze yet. Continue logging your sleep patterns for personalized insights." 
+        });
+      }
+
+      const analysis = await analyzeSleepPattern(
+        sleepQualities.map((sq) => ({
+          date: sq.date,
+          hoursSlept: sq.hoursSlept,
+          quality: sq.quality,
+        })),
+      );
+
+      res.json({ analysis });
+    } catch (error) {
+      console.error("Error in /api/sleep/analysis:", error);
+      if (error instanceof Error && error.message.includes("429")) {
+        return res.status(503).json({ 
+          analysis: "Sleep analysis is temporarily unavailable. Please try again later." 
+        });
+      }
+      return res.status(500).json({ 
+        analysis: "An error occurred while analyzing your sleep patterns. Please try again later." 
+      });
+    }
   });
 
   const httpServer = createServer(app);
